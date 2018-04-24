@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">NdroidClient</string>
+    <string name="enabled">Enabled</string>
+    <string name="device_name">Device Name</string>
+    <string name="pass">Password</string>
+    <string name="register">Register Device</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancel</string>
+</resources>
