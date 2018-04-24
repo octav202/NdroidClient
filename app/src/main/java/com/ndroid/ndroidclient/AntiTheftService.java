@@ -18,6 +18,7 @@ import android.util.Log;
 import com.ndroid.ndroidclient.models.DeviceLocation;
 import com.ndroid.ndroidclient.models.DeviceStatus;
 import com.ndroid.ndroidclient.server.GetDeviceStatusTask;
+import com.ndroid.ndroidclient.server.SendDeviceStatusTask;
 import com.ndroid.ndroidclient.server.SendLocationTask;
 import com.ndroid.ndroidclient.server.ServerApi;
 
@@ -50,6 +51,17 @@ public class AntiTheftService extends Service {
 
                 @Override
                 public void onFinished(DeviceStatus status) {
+                    if (status == null) {
+                        return;
+                    }
+
+                    // Start Location Thread - executed one time only
+                    if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
+                        Log.d(TAG, "Initiate Location Service");
+                        LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+                        startLocationThread();
+                    }
+
                     // Check if location frequency changed
                     if (status.getLocationFrequency() != LOCATION_REFRESH_FREQUENCY.get() / 1000) {
                         LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
@@ -68,29 +80,32 @@ public class AntiTheftService extends Service {
                     if (status.getTriggered() == 0) {
                         if (status.getEncryptStorage() == 1) {
                             // Encrypt Storage
+                            Log.d(TAG, "Should Encrypt Storage");
                         }
 
                         if (status.getLock() == 1) {
                             // Lock Device
+                            Log.d(TAG, "Should Lock Device");
                         }
 
                         if (status.getReboot() == 1) {
                             // Reboot;
+                            Log.d(TAG, "Should Reboot Device");
                         }
 
                         if (status.getWipeData() == 1) {
                             // Wipe data;
+                            Log.d(TAG, "Should Wipe Data");
                         }
 
                         // Operations triggered
                         status.setTriggered(1);
+
+                        sendDeviceStatus(status);
                     }
 
-                    // TODO send Device Status
                 }
             }).execute(mDeviceId);
-
-
             mAntiTheftHandler.postDelayed(this, 10000);
         }
     };
@@ -190,6 +205,8 @@ public class AntiTheftService extends Service {
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy()");
+        stopAntiTheftThread();
+        stopLocationThread();
     }
 
     @Nullable
@@ -213,7 +230,7 @@ public class AntiTheftService extends Service {
             mLocationHandlerThread = null;
         }
 
-        if (mLocationHandlerThread != null) {
+        if (mLocationHandler != null) {
             mLocationHandler.removeCallbacksAndMessages(null);
             mLocationHandler = null;
         }
@@ -229,6 +246,15 @@ public class AntiTheftService extends Service {
 
     private void stopAntiTheftThread() {
         Log.d(TAG, "stopAntiTheftThread()");
+        if (mAntiTheftHandlerThread != null) {
+            mAntiTheftHandlerThread.quit();
+            mAntiTheftHandlerThread = null;
+        }
+
+        if (mAntiTheftHandler != null) {
+            mAntiTheftHandler.removeCallbacksAndMessages(null);
+            mAntiTheftHandler = null;
+        }
     }
 
     private void requestLocationUpdates() {
@@ -246,5 +272,17 @@ public class AntiTheftService extends Service {
             //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
             //                                          int[] grantResults)
         }
+    }
+
+    private void sendDeviceStatus(DeviceStatus deviceStatus) {
+        new SendDeviceStatusTask(new SendDeviceStatusTask.SendDeviceStatusCallback() {
+            @Override
+            public void onStarted() {
+            }
+
+            @Override
+            public void onFinished(Boolean result) {
+            }
+        }).execute(deviceStatus);
     }
 }
