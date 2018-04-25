@@ -1,46 +1,133 @@
 package com.ndroid.ndroidclient;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Switch;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.ndroid.ndroidclient.server.AddDeviceTask;
 
 public class MainActivity extends AppCompatActivity {
 
+    private final String TAG = Constants.TAG + MainActivity.class.getSimpleName();
     private Switch mEnabledSwitch;
+    private EditText mIpText;
+    private EditText mFrequencyText;
+    private EditText mDeviceName;
+    private EditText mDevicePass;
+    private EditText mDeviceId;
+
+    private AntiTheftService mService;
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            AntiTheftService.LocalBinder binder = (AntiTheftService.LocalBinder) service;
+            mService = binder.getService();
+            if (mService != null) {
+                mIpText.setText(mService.getIpAddress());
+                mFrequencyText.setText(String.valueOf(mService.getAtFrequency()));
+
+                // Update Device info
+                int id = mService.getDeviceId();
+                if (id != 0) {
+                    mDeviceId.setText(String.valueOf(id));
+                    mDeviceName.setText(mService.getDeviceName());
+                    mDevicePass.setText(mService.getDevicePass());
+                }
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mService = null;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mEnabledSwitch = (Switch) findViewById(R.id.enabled);
+        mIpText = (EditText) findViewById(R.id.ip_text);
+        mIpText.setSingleLine();
+        mFrequencyText = (EditText) findViewById(R.id.at_frequency);
+        mFrequencyText.setSingleLine();
+        mFrequencyText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        mDeviceName = (EditText) findViewById(R.id.device_name);
+        mDevicePass = (EditText) findViewById(R.id.pass);
+        mDeviceId = (EditText) findViewById(R.id.device_id);
+
+        mEnabledSwitch.setChecked(Utils.getAntiTheftStatus(getApplicationContext()));
         mEnabledSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
+                if (mService == null) return;
 
-                    int id = Utils.getDeviceId(getApplicationContext());
+                if (isChecked) {
+                    int id = mService.getDeviceId();
                     if (id == 0) {
                         // Register Device
                         showRegisterDialog();
                     } else {
-                        Toast.makeText(getApplicationContext(), "Id :" + id, Toast.LENGTH_SHORT).show();
-                        startService(new Intent(getApplicationContext(), AntiTheftService.class));
+                        mService.setAntiTheftStatus(true);
                     }
                 } else {
-                    stopService(new Intent(getApplicationContext(), AntiTheftService.class));
+                    mService.setAntiTheftStatus(false);
                 }
             }
         });
+
+        mIpText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    if (mService != null) {
+                        mService.setIpAddress(v.getText().toString());
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        mFrequencyText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    if (mService != null) {
+                        mService.setAtFrequency(Integer.parseInt(v.getText().toString()));
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        // Bind to service
+        Intent intent = new Intent(getApplicationContext(), AntiTheftService.class);
+        if (!bindService(intent, mConnection, BIND_AUTO_CREATE)){
+            Log.e(TAG, "Bind to service failed");
+        }
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unbindService(mConnection);
     }
 
     /**
@@ -77,19 +164,39 @@ public class MainActivity extends AppCompatActivity {
         alert.create().show();
     }
 
-    private void registerDevice(String name, String pass) {
-        new AddDeviceTask(new AddDeviceTask.AddDeviceCallback() {
-            @Override
-            public void onStarted() {
-            }
+    /**
+     * Register Device on server
+     * @param name
+     * @param pass
+     */
+    private void registerDevice(final String name, final String pass) {
 
-            @Override
-            public void onFinished(int id) {
-                Toast.makeText(getApplicationContext(), "Registered Id :" + id, Toast.LENGTH_SHORT).show();
-                Utils.storeDeviceId(getApplicationContext(), id);
-                startService(new Intent(getApplicationContext(), AntiTheftService.class));
-            }
-        }).execute(name, pass);
+        if (mService != null) {
+            mService.registerDevice(name, pass, new AddDeviceTask.AddDeviceCallback() {
+                @Override
+                public void onStarted() {
+                }
+
+                @Override
+                public void onFinished(int id) {
+                    if (id == 0) {
+                        Log.e(TAG, "Registration failed!");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                mEnabledSwitch.setChecked(false);
+                            }
+                        });
+                        return;
+                    }
+
+                    mDeviceId.setText(String.valueOf(id));
+                    mDeviceName.setText(String.valueOf(name));
+                    mDevicePass.setText(String.valueOf(pass));
+                }
+            });
+        }
+
     }
 }
 

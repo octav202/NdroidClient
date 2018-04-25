@@ -217,7 +217,7 @@ public class ServerApi {
         }
 
         currentId = result;
-        Log.d(TAG, "Fetched Device Id : " + result);
+        Log.d(TAG, "Added Device Id : " + result);
 
         return result;
     }

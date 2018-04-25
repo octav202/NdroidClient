@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -17,6 +18,7 @@ import android.util.Log;
 
 import com.ndroid.ndroidclient.models.DeviceLocation;
 import com.ndroid.ndroidclient.models.DeviceStatus;
+import com.ndroid.ndroidclient.server.AddDeviceTask;
 import com.ndroid.ndroidclient.server.GetDeviceStatusTask;
 import com.ndroid.ndroidclient.server.SendDeviceStatusTask;
 import com.ndroid.ndroidclient.server.SendLocationTask;
@@ -26,12 +28,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.ndroid.ndroidclient.Constants.IP;
+import static com.ndroid.ndroidclient.Constants.SERVER_URL;
+import static com.ndroid.ndroidclient.Constants.SERVER_URL_PREFIX;
+import static com.ndroid.ndroidclient.Constants.SERVER_URL_SUFFIX;
+
 public class AntiTheftService extends Service {
 
-    private static final String TAG =  Constants.TAG + AntiTheftService.class.getSimpleName();
+    private static final String TAG = Constants.TAG + AntiTheftService.class.getSimpleName();
 
+    private final IBinder mBinder = new LocalBinder();
     private DeviceStatus mDeviceStatus;
-    private int mDeviceId;
     private LocationManager mLocationManager;
     private AtomicInteger ANTI_THEFT_CHECK_FREQUENCY = new AtomicInteger(100000);
     private AtomicInteger LOCATION_REFRESH_FREQUENCY = new AtomicInteger(0);
@@ -105,8 +112,8 @@ public class AntiTheftService extends Service {
                     }
 
                 }
-            }).execute(mDeviceId);
-            mAntiTheftHandler.postDelayed(this, 10000);
+            }).execute(Utils.getDeviceId(getApplicationContext()));
+            mAntiTheftHandler.postDelayed(this, ANTI_THEFT_CHECK_FREQUENCY.get());
         }
     };
 
@@ -159,8 +166,8 @@ public class AntiTheftService extends Service {
     private final LocationListener mLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(final Location location) {
-            Log.d(TAG,"onLocationChanged() " + location.getLatitude() + ", " +
-            location.getLongitude());
+            Log.d(TAG, "onLocationChanged() " + location.getLatitude() + ", " +
+                    location.getLongitude());
         }
 
         @Override
@@ -191,14 +198,20 @@ public class AntiTheftService extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate()");
 
-        mDeviceId = Utils.getDeviceId(getApplicationContext());
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
-        // Enable AntiTheft periodic check
-        startAntiTheftThread();
+        //Build URL server
+        IP = Utils.getIpAddress(getApplicationContext());
+        SERVER_URL = SERVER_URL_PREFIX + IP + SERVER_URL_SUFFIX;
 
-        // Request Location Updates
-        //requestLocationUpdates();
+        ANTI_THEFT_CHECK_FREQUENCY.set(Utils.getAtFrequency(getApplicationContext()) * 1000);
+
+        if (canStartAntiTheft()) {
+            // Enable AntiTheft periodic check
+            startAntiTheftThread();
+        } else {
+            Log.d(TAG, "Id Or Frequency not set");
+        }
     }
 
     @Override
@@ -212,7 +225,18 @@ public class AntiTheftService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
+    }
+
+    public class LocalBinder extends Binder {
+        /**
+         * Gets service.
+         *
+         * @return the service
+         */
+        public AntiTheftService getService() {
+            return AntiTheftService.this;
+        }
     }
 
     private void startLocationThread() {
@@ -284,5 +308,162 @@ public class AntiTheftService extends Service {
             public void onFinished(Boolean result) {
             }
         }).execute(deviceStatus);
+    }
+
+    /**
+     * Device Id
+     */
+    public Integer getDeviceId() {
+        Integer id = Utils.getDeviceId(getApplicationContext());
+        Log.d(TAG, "getDeviceId() " + id);
+        return id;
+    }
+
+    public void setDeviceId(Integer id) {
+        Log.d(TAG, "setDeviceId() " + id);
+        Utils.storeDeviceId(getApplicationContext(), id);
+    }
+
+    /**
+     * Device Name
+     */
+    public String getDeviceName() {
+        String name = Utils.getDeviceName(getApplicationContext());
+        Log.d(TAG, "getDeviceName() " + name);
+        return name;
+    }
+
+    public void setDeviceName(String name) {
+        Log.d(TAG, "setDeviceName() " + name);
+        Utils.storeDeviceName(getApplicationContext(), name);
+    }
+
+    /**
+     * Device Pass
+     */
+    public String getDevicePass() {
+        String pass = Utils.getDevicePass(getApplicationContext());
+        Log.d(TAG, "getDevicePass() " + pass);
+        return pass;
+    }
+
+    public void setDevicePass(String pass) {
+        Log.d(TAG, "setDevicePass() " + pass);
+        Utils.storeDevicePass(getApplicationContext(), pass);
+    }
+
+    /**
+     *  AntiTheft Status
+     */
+
+    public Boolean getAntiTheftStatus() {
+        Boolean status = Utils.getAntiTheftStatus(getApplicationContext());
+        Log.d(TAG, "getAntiTheftStatus() " + status);
+        return status;
+    }
+
+    public void setAntiTheftStatus(Boolean status) {
+        Log.d(TAG, "setAntiTheftStatus " + status);
+        Utils.storeAntiTheftStatus(getApplicationContext(), status);
+        if (status) {
+            enableAntiTheft();
+        } else {
+            disableAntiTheft();
+        }
+    }
+
+    /**
+     *  IP Address
+     */
+    public String getIpAddress() {
+        String ip = Utils.getIpAddress(getApplicationContext());
+        Log.d(TAG, "getIpAddress() " +ip);
+       return ip;
+    }
+
+    public void setIpAddress(String ip) {
+        Log.d(TAG, "setIpAddress() " +ip);
+        Utils.storeIpAddress(getApplicationContext(), ip);
+        IP = ip;
+        SERVER_URL = SERVER_URL_PREFIX + IP + SERVER_URL_SUFFIX;
+
+        // restart service
+        disableAntiTheft();
+        enableAntiTheft();
+    }
+
+    /**
+     *  AntiTheft Frequency
+     */
+    public Integer getAtFrequency() {
+        Integer fr = Utils.getAtFrequency(getApplicationContext());
+        Log.d(TAG, "getAtFrequency() " + fr);
+        return fr;
+    }
+
+    public void setAtFrequency(Integer frequency) {
+        Log.d(TAG, "setAtFrequency() " + frequency);
+        Utils.storeAtFrequency(getApplicationContext(), frequency);
+
+        ANTI_THEFT_CHECK_FREQUENCY.set(frequency * 1000);
+        // Restart service
+        disableAntiTheft();
+        enableAntiTheft();
+    }
+
+    public void enableAntiTheft() {
+        Log.d(TAG, "enableAntiTheft()");
+        if (canStartAntiTheft()) {
+            // Enable AntiTheft periodic check
+            startAntiTheftThread();
+        } else {
+            Log.e(TAG,"enableAntiTheft - failed");
+        }
+    }
+
+    public void disableAntiTheft() {
+        Log.d(TAG, "disableAntiTheft()");
+        stopLocationThread();
+        stopAntiTheftThread();
+    }
+
+    private boolean canStartAntiTheft() {
+        boolean enabled = Utils.getAntiTheftStatus(getApplicationContext());
+        int deviceId = Utils.getDeviceId(getApplicationContext());
+        return enabled && deviceId != 0 && ANTI_THEFT_CHECK_FREQUENCY.get() != 0;
+    }
+
+    /**
+     * Server API
+     */
+
+    /**
+     * Register Device on server
+     * @param name
+     * @param pass
+     */
+    public void registerDevice(final String name, final String pass, final AddDeviceTask.AddDeviceCallback callback) {
+        new AddDeviceTask(new AddDeviceTask.AddDeviceCallback() {
+            @Override
+            public void onStarted() {
+            }
+
+            @Override
+            public void onFinished(int id) {
+                Log.d(TAG, "Registered Id :" + id);
+
+                if (id == 0) {
+                    Log.e(TAG, "Registration failed!");
+                } else {
+                    setDeviceId(id);
+                    setDeviceName(name);
+                    setDevicePass(pass);
+                    setAntiTheftStatus(true);
+                }
+
+                callback.onFinished(id);
+
+            }
+        }).execute(name, pass);
     }
 }

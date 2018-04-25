@@ -1,9 +1,12 @@
 <resources>
     <string name="app_name">NdroidClient</string>
     <string name="enabled">Enabled</string>
-    <string name="device_name">Device Name</string>
-    <string name="pass">Password</string>
+    <string name="device_name">Device Name :</string>
+    <string name="pass">Password : </string>
+    <string name="device_id">Device Id : </string>
     <string name="register">Register Device</string>
     <string name="ok">Ok</string>
     <string name="cancel">Cancel</string>
+    <string name="ip_address">IP Address :</string>
+    <string name="at_frequency">Check frequency :</string>
 </resources>
