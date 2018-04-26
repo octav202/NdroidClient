@@ -2,11 +2,15 @@ package com.ndroid.ndroidclient;
 
 import android.Manifest;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -26,8 +30,13 @@ import com.ndroid.ndroidclient.server.ServerApi;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static android.net.wifi.WifiManager.EXTRA_WIFI_STATE;
+import static android.net.wifi.WifiManager.WIFI_STATE_CHANGED_ACTION;
+import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static com.ndroid.ndroidclient.Constants.IP;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_PREFIX;
@@ -38,11 +47,16 @@ public class AntiTheftService extends Service {
     private static final String TAG = Constants.TAG + AntiTheftService.class.getSimpleName();
 
     private final IBinder mBinder = new LocalBinder();
-    private DeviceStatus mDeviceStatus;
+
     private LocationManager mLocationManager;
     private AtomicInteger ANTI_THEFT_CHECK_FREQUENCY = new AtomicInteger(100000);
     private AtomicInteger LOCATION_REFRESH_FREQUENCY = new AtomicInteger(0);
     private int LOCATION_REFRESH_DISTANCE = 50;
+
+    // Wifi
+    WifiManager mWifiManager;
+    private AtomicBoolean mWifiState = new AtomicBoolean();
+    private AtomicBoolean mShouldGetStatus = new AtomicBoolean();
 
     // Anti Theft Check
     private Handler mAntiTheftHandler;
@@ -50,74 +64,18 @@ public class AntiTheftService extends Service {
     private Runnable mGetDeviceStatusRunnable = new Runnable() {
         @Override
         public void run() {
-            new GetDeviceStatusTask(new GetDeviceStatusTask.GetDeviceStatusCallback() {
-                @Override
-                public void onStarted() {
 
-                }
+            mWifiState.set(mWifiManager.isWifiEnabled());
+            if (!mWifiState.get()) {
+                // Turn Wifi on and get status
+                mWifiManager.setWifiEnabled(true);
+                Log.d(TAG, "Wifi Disabled, Enable & Postpone getDeviceStatus()");
+                mShouldGetStatus.set(true);
+            } else {
+                // Wifi already On, Get status
+                getDeviceStatus(true);
+            }
 
-                @Override
-                public void onFinished(DeviceStatus status) {
-                    if (status == null) {
-                        return;
-                    }
-
-                    // Start Location Thread - executed one time only
-                    if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
-                        Log.d(TAG, "Initiate Location Service");
-                        LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
-                        startLocationThread();
-                    }
-
-                    // Check if location frequency changed
-                    if (status.getLocationFrequency() != LOCATION_REFRESH_FREQUENCY.get() / 1000) {
-                        LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
-                        Log.d(TAG, "Location Frequency Changed To " + LOCATION_REFRESH_FREQUENCY.get());
-
-                        // Restart location update handler
-                        stopLocationThread();
-                        if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
-                            startLocationThread();
-                        } else {
-                            Log.d(TAG, "Stopping location updates..");
-                        }
-                    }
-
-                    // Check for pending device operations
-                    if (status.getTriggered() == 0) {
-                        if (status.getEncryptStorage() == 1) {
-                            // Encrypt Storage
-                            Log.d(TAG, "Should Encrypt Storage");
-                        }
-
-                        if (status.getLock() == 1) {
-                            // Lock Device
-                            Log.d(TAG, "Should Lock Device");
-                        }
-
-                        if (status.getReboot() == 1) {
-                            // Reboot;
-                            Log.d(TAG, "Should Reboot Device");
-                        }
-
-                        if (status.getWipeData() == 1) {
-                            // Wipe data;
-                            Log.d(TAG, "Should Wipe Data");
-                        }
-
-                        if (status.getRing() == 1) {
-                            // Ring
-                            Log.d(TAG, "Should Ring");
-                        }
-
-                        // Operations triggered
-                        status.setTriggered(1);
-
-                        sendDeviceStatus(status);
-                    }
-
-                }
-            }).execute(Utils.getDeviceId(getApplicationContext()));
             mAntiTheftHandler.postDelayed(this, ANTI_THEFT_CHECK_FREQUENCY.get());
         }
     };
@@ -154,12 +112,9 @@ public class AntiTheftService extends Service {
             new SendLocationTask(new SendLocationTask.SendLocationCallback() {
                 @Override
                 public void onStarted() {
-
                 }
-
                 @Override
                 public void onFinished(Boolean result) {
-
                 }
             }).execute(devLoc);
 
@@ -204,7 +159,9 @@ public class AntiTheftService extends Service {
         Log.d(TAG, "onCreate()");
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        mWifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
+        registerWifiReceiver();
         //Build URL server
         IP = Utils.getIpAddress(getApplicationContext());
         SERVER_URL = SERVER_URL_PREFIX + IP + SERVER_URL_SUFFIX;
@@ -217,12 +174,15 @@ public class AntiTheftService extends Service {
         } else {
             Log.d(TAG, "Id Or Frequency not set");
         }
+
+
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy()");
+        unregisterWifiReceiver();
         stopAntiTheftThread();
         stopLocationThread();
     }
@@ -286,24 +246,7 @@ public class AntiTheftService extends Service {
         }
     }
 
-    private void requestLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_COARSE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
-
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_FREQUENCY.get(),
-                    LOCATION_REFRESH_DISTANCE, mLocationListener);
-        } else {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-        }
-    }
-
-    private void sendDeviceStatus(DeviceStatus deviceStatus) {
+    private void sendDeviceStatus(DeviceStatus deviceStatus, final boolean previousWifiState) {
         new SendDeviceStatusTask(new SendDeviceStatusTask.SendDeviceStatusCallback() {
             @Override
             public void onStarted() {
@@ -311,8 +254,22 @@ public class AntiTheftService extends Service {
 
             @Override
             public void onFinished(Boolean result) {
+                // Check if wifi state needs to be reverted
+                if (!previousWifiState) {
+                    disableWifi();
+                }
             }
         }).execute(deviceStatus);
+    }
+
+    private void disableWifi() {
+        Boolean enabled = mWifiManager.isWifiEnabled();
+        if (!enabled) {
+            Log.d(TAG, "Wifi Already disabled");
+        } else {
+            Log.d(TAG, "Disabling Wifi");
+            mWifiManager.setWifiEnabled(false);
+        }
     }
 
     /**
@@ -471,4 +428,133 @@ public class AntiTheftService extends Service {
             }
         }).execute(name, pass);
     }
+
+    private void getDeviceStatus(final boolean previousWifiState) {
+        new GetDeviceStatusTask(new GetDeviceStatusTask.GetDeviceStatusCallback() {
+            @Override
+            public void onStarted() {
+            }
+
+            @Override
+            public void onFinished(DeviceStatus status) {
+                if (status == null) {
+                    return;
+                }
+
+                // Start Location Thread - executed one time only
+                if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
+                    Log.d(TAG, "Initiate Location Service");
+                    LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+                    startLocationThread();
+                }
+
+                // Check if location frequency changed
+                if (status.getLocationFrequency() != LOCATION_REFRESH_FREQUENCY.get() / 1000) {
+                    LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+                    Log.d(TAG, "Location Frequency Changed To " + LOCATION_REFRESH_FREQUENCY.get());
+
+                    // Restart location update handler
+                    stopLocationThread();
+                    if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
+                        startLocationThread();
+                    } else {
+                        Log.d(TAG, "Stopping location updates..");
+                    }
+                }
+
+                // Check for pending device operations
+                if (status.getTriggered() == 0) {
+                    if (status.getEncryptStorage() == 1) {
+                        // Encrypt Storage
+                        Log.d(TAG, "Should Encrypt Storage");
+                    }
+
+                    if (status.getLock() == 1) {
+                        // Lock Device
+                        Log.d(TAG, "Should Lock Device");
+                    }
+
+                    if (status.getReboot() == 1) {
+                        // Reboot;
+                        Log.d(TAG, "Should Reboot Device");
+                    }
+
+                    if (status.getWipeData() == 1) {
+                        // Wipe data;
+                        Log.d(TAG, "Should Wipe Data");
+                    }
+
+                    if (status.getRing() == 1) {
+                        // Ring
+                        Log.d(TAG, "Should Ring");
+                    }
+
+                    // Operations triggered
+                    status.setTriggered(1);
+
+                    // Send Device Status and Revert wifi state
+                    sendDeviceStatus(status, previousWifiState);
+                } else {
+                    if (!previousWifiState) {
+                        disableWifi();
+                    }
+                }
+
+            }
+        }).execute(Utils.getDeviceId(getApplicationContext()));
+    }
+
+    /**
+     * Wifi Receiver
+     */
+
+    private BroadcastReceiver mWifiReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent == null || intent.getAction() == null) {
+                return;
+            }
+
+            if (intent.getAction() == WIFI_STATE_CHANGED_ACTION) {
+                int status = intent.getIntExtra(EXTRA_WIFI_STATE, 0);
+                if (status == WIFI_STATE_ENABLED) {
+                    Log.d(TAG, "on Receive WIFI_STATE_ENABLED");
+                    if (mShouldGetStatus.compareAndSet(true,false)) {
+                        getDeviceStatus(mWifiState.get());
+                    }
+                } else if (status == WIFI_STATE_DISABLED) {
+                    Log.d(TAG, "on Receive WIFI_STATE_DISABLED");
+                }
+
+            }
+        }
+    };
+
+    private void registerWifiReceiver() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(WIFI_STATE_CHANGED_ACTION);
+        registerReceiver(mWifiReceiver, filter);
+    }
+
+    private void unregisterWifiReceiver() {
+        unregisterReceiver(mWifiReceiver);
+    }
+
+    private void requestLocationUpdates() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_FREQUENCY.get(),
+                    LOCATION_REFRESH_DISTANCE, mLocationListener);
+        } else {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+        }
+    }
+
 }
