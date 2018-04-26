@@ -105,6 +105,11 @@ public class AntiTheftService extends Service {
                             Log.d(TAG, "Should Wipe Data");
                         }
 
+                        if (status.getRing() == 1) {
+                            // Ring
+                            Log.d(TAG, "Should Ring");
+                        }
+
                         // Operations triggered
                         status.setTriggered(1);
 

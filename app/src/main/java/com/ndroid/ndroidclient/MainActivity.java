@@ -121,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
         if (!bindService(intent, mConnection, BIND_AUTO_CREATE)){
             Log.e(TAG, "Bind to service failed");
         }
-
     }
 
     @Override

@@ -375,6 +375,7 @@ public class ServerApi {
                 deviceStatus.setReboot(jsonObj.getInt("reboot"));
                 deviceStatus.setTriggered(jsonObj.getInt("triggered"));
                 deviceStatus.setLocationFrequency(jsonObj.getInt("locationFrequency"));
+                deviceStatus.setRing(jsonObj.getInt("ring"));
                 Log.d(TAG,deviceStatus.toString());
             } catch (JSONException e) {
                 Log.e(TAG, "Error Parsing Json");
@@ -421,6 +422,7 @@ public class ServerApi {
             json.put("reboot", deviceStatus.getReboot());
             json.put("triggered", deviceStatus.getTriggered());
             json.put("locationFrequency", deviceStatus.getLocationFrequency());
+            json.put("ring", deviceStatus.getRing());
         } catch (JSONException e) {
             Log.e(TAG, "Error creating Json object" + e);
         }

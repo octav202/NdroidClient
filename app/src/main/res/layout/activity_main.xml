@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <!-- AntiTheft Status -->
     <Switch
         android:id="@+id/enabled"
         android:layout_width="wrap_content"
@@ -13,6 +14,7 @@
         android:layout_margin="10dp"
         android:checked="false"/>
 
+    <!-- IP Address -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -34,6 +36,7 @@
             android:imeOptions="actionDone"/>
     </LinearLayout>
 
+    <!-- Frequency -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -55,6 +58,7 @@
             android:textSize="15sp"/>
     </LinearLayout>
 
+    <!-- Device Name -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -76,6 +80,7 @@
             android:enabled="false"/>
     </LinearLayout>
 
+    <!-- Device Pass -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -98,6 +103,7 @@
             android:enabled="false"/>
     </LinearLayout>
 
+    <!-- Device Id -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
