@@ -3,7 +3,10 @@ package com.ndroid.ndroidclient;
 import android.Manifest;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.app.admin.DeviceAdminReceiver;
+import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -58,6 +61,10 @@ public class AntiTheftService extends Service {
     private AtomicInteger ANTI_THEFT_CHECK_FREQUENCY = new AtomicInteger(100000);
     private AtomicInteger LOCATION_REFRESH_FREQUENCY = new AtomicInteger(0);
     private int LOCATION_REFRESH_DISTANCE = 50;
+
+    // Admin Device Manager
+    private AdminReceiver mAdminReceiver;
+    private DevicePolicyManager mDeviceManager ;
 
     // Wifi
     WifiManager mWifiManager;
@@ -163,6 +170,10 @@ public class AntiTheftService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate()");
+
+        mDeviceManager = (DevicePolicyManager)getSystemService(Context.DEVICE_POLICY_SERVICE);
+        mAdminReceiver = new AdminReceiver();
+        requestAdminPermissions();
 
         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         mWifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -472,12 +483,15 @@ public class AntiTheftService extends Service {
                 if (status.getTriggered() == 0) {
                     if (status.getEncryptStorage() == 1) {
                         // Encrypt Storage
-                        Log.d(TAG, "Should Encrypt Storage");
+                        encrypt();
+                    } else {
+                        // Decrypt Storage
+                        decript();
                     }
 
                     if (status.getLock() == 1) {
                         // Lock Device
-                        Log.d(TAG, "Should Lock Device");
+                        lock();
                     }
 
                     if (status.getReboot() == 1) {
@@ -487,7 +501,7 @@ public class AntiTheftService extends Service {
 
                     if (status.getWipeData() == 1) {
                         // Wipe data;
-                        Log.d(TAG, "Should Wipe Data");
+                        wipe();
                     }
 
                     if (status.getRing() == 1) {
@@ -543,12 +557,102 @@ public class AntiTheftService extends Service {
         registerReceiver(mWifiReceiver, filter);
     }
 
+    private void unregisterWifiReceiver() {
+        unregisterReceiver(mWifiReceiver);
+    }
+
+    /**
+     * Device Admin Policies
+     */
+    private void requestAdminPermissions() {
+        if (!isAdminActive()) {
+            startActivity(new Intent(getApplicationContext(), PermissionActivity.class));
+        }
+    }
+
+    private boolean isAdminActive() {
+        ComponentName receiver = new ComponentName(getApplicationContext(), AdminReceiver.class);
+        return mDeviceManager.isAdminActive(receiver);
+    }
+
+    public static class AdminReceiver extends DeviceAdminReceiver {
+
+        @Override
+        public void onEnabled(Context context, Intent intent) {
+            super.onEnabled(context, intent);
+        }
+
+        @Override
+        public CharSequence onDisableRequested(Context context, Intent intent) {
+            return super.onDisableRequested(context, intent);
+        }
+
+        @Override
+        public void onDisabled(Context context, Intent intent) {
+            super.onDisabled(context, intent);
+        }
+
+    }
+
     /**
      * Remote functions
      */
 
+    public void lock() {
+        Log.d(TAG, "[ LOCK ]");
+        if (isAdminActive()) {
+            mDeviceManager.lockNow();
+        } else {
+            Log.e(TAG, "No Admin Permission");
+            requestAdminPermissions();
+        }
+    }
+
+    public void wipe() {
+        Log.d(TAG, "[ WIPE ]");
+        if (isAdminActive()) {
+            mDeviceManager.wipeData(0);
+        } else {
+            Log.e(TAG, "No Admin Permission");
+            requestAdminPermissions();
+        }
+    }
+
+    public void reboot() {
+        Log.d(TAG, "[ REBOOT ]");
+        ComponentName receiver = new ComponentName(getApplicationContext(), AdminReceiver.class);
+        if (isAdminActive()) {
+            mDeviceManager.reboot(receiver);
+        } else {
+            Log.e(TAG, "No Admin Permission");
+            requestAdminPermissions();
+        }
+    }
+
+    public void encrypt() {
+        Log.d(TAG, "[ ENCRYPT ]");
+        ComponentName receiver = new ComponentName(getApplicationContext(), AdminReceiver.class);
+        if (isAdminActive()) {
+            mDeviceManager.setStorageEncryption(receiver, true);
+        } else {
+            Log.e(TAG, "No Admin Permission");
+            requestAdminPermissions();
+        }
+    }
+
+    public void decript() {
+        Log.d(TAG, "[ DECRYPT ]");
+        ComponentName receiver = new ComponentName(getApplicationContext(), AdminReceiver.class);
+        if (isAdminActive()) {
+            mDeviceManager.setStorageEncryption(receiver, false);
+        } else {
+            Log.e(TAG, "No Admin Permission");
+            requestAdminPermissions();
+        }
+    }
+
     public void ring() {
-        Log.d(TAG, "Ringing..");
+        Log.d(TAG, "[ RING ]");
 
         // Request Access to bypass "Do not disturb" mode
         NotificationManager n = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
@@ -580,9 +684,6 @@ public class AntiTheftService extends Service {
         }
     }
 
-    private void unregisterWifiReceiver() {
-        unregisterReceiver(mWifiReceiver);
-    }
 
     private void requestLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)

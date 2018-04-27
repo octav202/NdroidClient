@@ -25,7 +25,20 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".PermissionActivity">
+        </activity>
+
         <service android:name=".AntiTheftService" android:enabled="true"></service>
+
+        <receiver android:name=".AntiTheftService$AdminReceiver"
+            android:description="@string/device_admin_description"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

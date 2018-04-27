@@ -9,4 +9,5 @@
     <string name="cancel">Cancel</string>
     <string name="ip_address">IP Address :</string>
     <string name="at_frequency">Check frequency :</string>
+    <string name="device_admin_description">Device Admin Receiver</string>
 </resources>

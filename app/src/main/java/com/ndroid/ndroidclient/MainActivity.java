@@ -1,6 +1,7 @@
 package com.ndroid.ndroidclient;
 
 import android.app.AlertDialog;
+import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -208,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
         encryptBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mService.encrypt();
             }
         });
 
@@ -217,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         wipeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mService.wipe();
             }
         });
 
@@ -226,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
         lockBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mService.lock();
             }
         });
 
@@ -235,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
         rebootBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                mService.reboot();
             }
         });
 
@@ -248,5 +249,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 }
 
