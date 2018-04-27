@@ -124,4 +124,42 @@
             android:textSize="15sp"
             android:enabled="false"/>
     </LinearLayout>
+
+    <!-- Remote Functions-->
+    <LinearLayout android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="5">
+
+        <Button android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/wipe_btn"
+            android:text="Wipe"/>
+
+        <Button android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/lock_btn"
+            android:text="Lock"/>
+
+        <Button android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/encrypt_btn"
+            android:text="Encrypt"/>
+
+        <Button android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/reboot_btn"
+            android:text="Reboot"/>
+
+        <Button android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:id="@+id/ring_btn"
+            android:text="Ring"/>
+
+    </LinearLayout>
 </LinearLayout>

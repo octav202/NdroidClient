@@ -1,6 +1,7 @@
 package com.ndroid.ndroidclient;
 
 import android.Manifest;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,6 +11,10 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Bundle;
@@ -38,6 +43,7 @@ import static android.net.wifi.WifiManager.WIFI_STATE_CHANGED_ACTION;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
 import static com.ndroid.ndroidclient.Constants.IP;
+import static com.ndroid.ndroidclient.Constants.RING_TIMEOUT;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_PREFIX;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_SUFFIX;
@@ -487,6 +493,7 @@ public class AntiTheftService extends Service {
                     if (status.getRing() == 1) {
                         // Ring
                         Log.d(TAG, "Should Ring");
+                        ring();
                     }
 
                     // Operations triggered
@@ -534,6 +541,43 @@ public class AntiTheftService extends Service {
         IntentFilter filter = new IntentFilter();
         filter.addAction(WIFI_STATE_CHANGED_ACTION);
         registerReceiver(mWifiReceiver, filter);
+    }
+
+    /**
+     * Remote functions
+     */
+
+    public void ring() {
+        Log.d(TAG, "Ringing..");
+
+        // Request Access to bypass "Do not disturb" mode
+        NotificationManager n = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        if(!n.isNotificationPolicyAccessGranted()) {
+            Intent intent = new Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            getApplicationContext().startActivity(intent);
+            return;
+        }
+
+        // Set volume to max on STREAM_RING
+        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        audioManager.setStreamVolume(AudioManager.STREAM_RING,
+                audioManager.getStreamMaxVolume(AudioManager.STREAM_RING),0);
+
+        // Play ringtone
+        Uri alarm = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        final Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), alarm);
+        if (!r.isPlaying()) {
+            r.play();
+
+            // Stop after a timeout
+            new Handler(). postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    r.stop();
+                    Log.d(TAG, "Stopping Ring..");
+                }
+            }, RING_TIMEOUT * 1000);
+        }
     }
 
     private void unregisterWifiReceiver() {

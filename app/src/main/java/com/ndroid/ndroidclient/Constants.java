@@ -20,4 +20,6 @@ public class Constants {
     public static final String SHARED_KEY_AT_STATUS = "AT_STATUS";
     public static final String SHARED_KEY_AT_FREQUENCY = "AT_FREQUENCY";
     public static final String SHARED_KEY_IP_ADDRESS = "IP_ADDRESS";
+
+    public static final Integer RING_TIMEOUT = 10;
 }

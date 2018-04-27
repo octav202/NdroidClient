@@ -11,7 +11,9 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -121,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
         if (!bindService(intent, mConnection, BIND_AUTO_CREATE)){
             Log.e(TAG, "Bind to service failed");
         }
+
+        initButtons();
     }
 
     @Override
@@ -196,6 +200,53 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+    }
+
+    private void initButtons() {
+        // Encrypt
+        Button encryptBtn = (Button) findViewById(R.id.encrypt_btn);
+        encryptBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        // Wipe
+        Button wipeBtn = (Button) findViewById(R.id.wipe_btn);
+        wipeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        // Lock
+        Button lockBtn = (Button) findViewById(R.id.lock_btn);
+        lockBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        // Reboot
+        Button rebootBtn = (Button) findViewById(R.id.reboot_btn);
+        rebootBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+        // Ring
+        Button ringBtn = (Button) findViewById(R.id.ring_btn);
+        ringBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mService.ring();
+            }
+        });
     }
 }
 
