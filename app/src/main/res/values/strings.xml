@@ -10,4 +10,27 @@
     <string name="ip_address">IP Address :</string>
     <string name="at_frequency">Check frequency :</string>
     <string name="device_admin_description">Device Admin Receiver</string>
+
+    <!-- Anti Theft-->
+    <string name="header_category_antitheft">Anti Theft</string>
+    <string name="antitheft_settings_title">Anti Theft Settings</string>
+
+    <string name="at_key_status">status</string>
+    <string name="at_key_status_title">Status</string>
+
+    <string name="at_key_ip">ip</string>
+    <string name="at_key_ip_title">IP Address</string>
+
+    <string name="at_key_frequency">frequency</string>
+    <string name="at_key_frequency_title">Anti Theft Check Frequency (sec.)</string>
+
+    <string name="at_key_device_id">device_id</string>
+    <string name="at_key_device_id_title">Device ID</string>
+
+    <string name="at_key_device_name">device_name</string>
+    <string name="at_key_device_name_title">Device Name</string>
+
+    <string name="at_key_device_pass">device_pass</string>
+    <string name="at_key_device_pass_title">Device Password</string>
+
 </resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="@string/header_category_antitheft">
+
+
+    <!-- Enabled -->
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="@string/at_key_status"
+        android:title="@string/at_key_status_title" />
+
+    <!-- IP Address -->
+    <EditTextPreference
+        android:key="@string/at_key_ip"
+        android:summary=""
+        android:title="@string/at_key_ip_title" />
+
+    <!-- AntiTheft Frequency -->
+    <EditTextPreference
+        android:key="@string/at_key_frequency"
+        android:summary=""
+        android:title="@string/at_key_frequency_title"
+        android:inputType="number"/>
+
+
+    <!-- Device ID -->
+    <EditTextPreference
+        android:key="@string/at_key_device_id"
+        android:summary=""
+        android:title="@string/at_key_device_id_title" />
+
+    <!-- Device Name -->
+    <EditTextPreference
+        android:key="@string/at_key_device_name"
+        android:summary=""
+        android:title="@string/at_key_device_name_title" />
+
+    <!-- Device Password -->
+    <EditTextPreference
+        android:key="@string/at_key_device_pass"
+        android:summary=""
+        android:title="@string/at_key_device_pass_title" />
+
+
+</PreferenceScreen>

@@ -18,7 +18,7 @@ public class PermissionActivity extends Activity {
         Log.d("AT_", "Activity Created");
 
         Log.d(TAG, "requestAdminPermissions");
-        ComponentName receiver = new ComponentName(getApplicationContext(), AntiTheftService.AdminReceiver.class);
+        ComponentName receiver = new ComponentName(getApplicationContext(), AntiTheftBinder.AdminReceiver.class);
         Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
         intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN,receiver);
         intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "EXTRA ADMIN REQUEST EXPLANATION");
