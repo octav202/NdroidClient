@@ -4,10 +4,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.support.annotation.Nullable;
+import android.text.Html;
 import android.util.Log;
+
+import java.util.Locale;
 
 import static com.ndroid.ndroidclient.Constants.SERVICE_READY;
 
@@ -28,6 +32,13 @@ public class SettingsActivity extends PreferenceActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Set Action Bar color
+        int primary = getResources().getColor(R.color.colorPrimaryDark);
+        String htmlColor = String.format(Locale.US, "#%06X", (0xFFFFFF & Color.argb(0,
+                Color.red(primary), Color.green(primary), Color.blue(primary))));
+        getActionBar().setTitle(Html.fromHtml("<font color=\""+htmlColor+"\">"
+                + getString(R.string.antitheft_settings_title) + "</font>"));
     }
 
     @Override
