@@ -15,13 +15,6 @@ public class SendLocationTask extends AsyncTask<DeviceLocation, Void, Boolean> {
 
     @Override
     protected Boolean doInBackground(DeviceLocation... deviceLocation) {
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         // Authenticate
         return ServerApi.sendLocation(deviceLocation[0]);
     }

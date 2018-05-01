@@ -42,9 +42,11 @@ import static android.net.wifi.WifiManager.EXTRA_WIFI_STATE;
 import static android.net.wifi.WifiManager.WIFI_STATE_CHANGED_ACTION;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static com.ndroid.ndroidclient.Constants.DEVICE_ADMIN;
 import static com.ndroid.ndroidclient.Constants.DEVICE_REGISTERED;
 import static com.ndroid.ndroidclient.Constants.DEVICE_REGISTERED_EXTRA_KEY;
 import static com.ndroid.ndroidclient.Constants.IP;
+import static com.ndroid.ndroidclient.Constants.LOCATION;
 import static com.ndroid.ndroidclient.Constants.RING_TIMEOUT;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_PREFIX;
@@ -58,9 +60,8 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
     private AtomicInteger ANTI_THEFT_CHECK_FREQUENCY = new AtomicInteger(100000);
     private AtomicInteger LOCATION_REFRESH_FREQUENCY = new AtomicInteger(0);
     private int LOCATION_REFRESH_DISTANCE = 50;
+    private AtomicInteger mDeviceId = new AtomicInteger();
 
-    // Admin Device Manager
-    private AdminReceiver mAdminReceiver;
     private DevicePolicyManager mDeviceManager ;
 
     // Wifi
@@ -101,32 +102,38 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     && ActivityCompat.checkSelfPermission(mContext,
                     Manifest.permission.ACCESS_COARSE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
-                // REQUEST LOCATION PERMISSION
+                Log.e(TAG, "Location Permission not Requested");
+
+                requestLocationPermissions();
                 return;
             }
 
             // Get Current DeviceLocation
             Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            if (location != null) {
+                // Get Current Time
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                String time = sdf.format(new Date());
 
-            // Get Current Time
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-            String time = sdf.format(new Date());
+                // DeviceLocation to send to server
+                DeviceLocation devLoc = new DeviceLocation();
+                devLoc.setDeviceId(mDeviceId.get());
+                devLoc.setLat(location.getLatitude());
+                devLoc.setLon(location.getLongitude());
+                devLoc.setTimeStamp(time);
 
-            // DeviceLocation to send to server
-            DeviceLocation devLoc = new DeviceLocation();
-            devLoc.setDeviceId(ServerApi.getCurrentDeviceId());
-            devLoc.setLat(location.getLatitude());
-            devLoc.setLon(location.getLongitude());
-            devLoc.setTimeStamp(time);
+                new SendLocationTask(new SendLocationTask.SendLocationCallback() {
+                    @Override
+                    public void onStarted() {
+                    }
 
-            new SendLocationTask(new SendLocationTask.SendLocationCallback() {
-                @Override
-                public void onStarted() {
-                }
-                @Override
-                public void onFinished(Boolean result) {
-                }
-            }).execute(devLoc);
+                    @Override
+                    public void onFinished(Boolean result) {
+                    }
+                }).execute(devLoc);
+            } else {
+                Log.d(TAG, "Location is Null");
+            }
 
             mLocationHandler.postDelayed(this, LOCATION_REFRESH_FREQUENCY.get());
         }
@@ -139,11 +146,13 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         AntiTheftManager.getInstance(mContext);
 
         mDeviceManager = (DevicePolicyManager)mContext.getSystemService(Context.DEVICE_POLICY_SERVICE);
-        mAdminReceiver = new AdminReceiver();
-        requestAdminPermissions();
-
         mLocationManager = (LocationManager)mContext.getSystemService(LOCATION_SERVICE);
         mWifiManager = (WifiManager) mContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+
+        // Request all necessary permissions
+        requestLocationPermissions();
+        requestAdminPermissions();
+        requestDisturbPermissions();
 
         registerWifiReceiver();
         //Build URL server
@@ -172,7 +181,7 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         mLocationHandlerThread = new HandlerThread("Location_Thread");
         mLocationHandlerThread.start();
         mLocationHandler = new Handler(mLocationHandlerThread.getLooper());
-        mLocationHandler.postDelayed(mLocationUpdateRunnable, LOCATION_REFRESH_FREQUENCY.get());
+        mLocationHandler.post(mLocationUpdateRunnable);
     }
 
     private void stopLocationThread() {
@@ -273,10 +282,16 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     return;
                 }
 
+                mDeviceId.set(status.getDeviceId());
+
                 // Start Location Thread - executed one time only
                 if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
-                    Log.d(TAG, "Initiate Location Service");
                     LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+                    Log.d(TAG, "Initiate Location Service " + LOCATION_REFRESH_FREQUENCY.get());
+                    startLocationThread();
+                }
+
+                if (mLocationHandler == null || mLocationHandlerThread == null) {
                     startLocationThread();
                 }
 
@@ -309,11 +324,6 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                         lock();
                     }
 
-                    if (status.getReboot() == 1) {
-                        // Reboot;
-                        Log.d(TAG, "Should Reboot Device");
-                    }
-
                     if (status.getWipeData() == 1) {
                         // Wipe data;
                         wipe();
@@ -331,6 +341,14 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     // Send Device Status and Revert wifi state
                     sendDeviceStatus(status, previousWifiState);
                 } else {
+
+                    // Reboot device continuously until the tracker sets reboot to off
+                    if (status.getReboot() == 1) {
+                        // Reboot;
+                        Log.d(TAG, "Should Reboot Device");
+                        reboot();
+                    }
+
                     if (!previousWifiState) {
                         disableWifi();
                     }
@@ -376,36 +394,41 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         mContext.unregisterReceiver(mWifiReceiver);
     }
 
+    private void requestDisturbPermissions() {
+        // Request Access to bypass "Do not disturb" mode
+        NotificationManager n = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(!n.isNotificationPolicyAccessGranted()) {
+            Intent intent = new Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            mContext.startActivity(intent);
+            return;
+        }
+    }
+
+    /**
+     * Request Location Permissions
+     */
+    private void requestLocationPermissions() {
+        if (!isAdminActive()) {
+            Intent intent = new Intent(mContext, PermissionActivity.class);
+            intent.putExtra(LOCATION, true);
+            mContext.startActivity(intent);
+        }
+    }
+
     /**
      * Device Admin Policies
      */
     private void requestAdminPermissions() {
         if (!isAdminActive()) {
-            mContext.startActivity(new Intent(mContext, PermissionActivity.class));
+            Intent intent = new Intent(mContext, PermissionActivity.class);
+            intent.putExtra(DEVICE_ADMIN, true);
+            mContext.startActivity(intent);
         }
     }
 
     private boolean isAdminActive() {
         ComponentName receiver = new ComponentName(mContext, AdminReceiver.class);
         return mDeviceManager.isAdminActive(receiver);
-    }
-
-    public static class AdminReceiver extends DeviceAdminReceiver {
-
-        @Override
-        public void onEnabled(Context context, Intent intent) {
-            super.onEnabled(context, intent);
-        }
-
-        @Override
-        public CharSequence onDisableRequested(Context context, Intent intent) {
-            return super.onDisableRequested(context, intent);
-        }
-
-        @Override
-        public void onDisabled(Context context, Intent intent) {
-            super.onDisabled(context, intent);
-        }
     }
 
     /**
@@ -435,6 +458,11 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
     public void reboot() {
         Log.d(TAG, "[ REBOOT ]");
         ComponentName receiver = new ComponentName(mContext, AdminReceiver.class);
+        if (! mDeviceManager.isDeviceOwnerApp("com.ndroid.ndroidclient")){
+            Log.e(TAG, "App Not Device Owner!!");
+            return;
+        }
+
         if (isAdminActive()) {
             mDeviceManager.reboot(receiver);
         } else {

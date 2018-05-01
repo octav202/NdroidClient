@@ -24,6 +24,10 @@ public class Constants {
 
     public static final Integer RING_TIMEOUT = 10;
 
+    // Flags for requesting permissions
+    public static final String DEVICE_ADMIN = "DEVICE_ADMIN";
+    public static final String LOCATION = "LOCATION";
+
     // Intents
     public static final String SERVICE_READY = "SERVICE_READY";
     public static final String DEVICE_REGISTERED = "DEVICE_REGISTERED";

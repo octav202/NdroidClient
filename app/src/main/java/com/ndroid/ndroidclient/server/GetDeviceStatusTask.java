@@ -15,13 +15,6 @@ public class GetDeviceStatusTask extends AsyncTask<Integer, Void, DeviceStatus> 
 
     @Override
     protected DeviceStatus doInBackground(Integer... deviceId) {
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         return ServerApi.getDeviceStatus(deviceId[0]);
     }
 

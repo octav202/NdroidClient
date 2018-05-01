@@ -16,12 +16,6 @@ public class SendDeviceStatusTask extends AsyncTask<DeviceStatus, Void, Boolean>
     @Override
     protected Boolean doInBackground(DeviceStatus... status) {
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         // Authenticate
         return ServerApi.sendDeviceStatus(status[0]);
     }
