@@ -135,7 +135,9 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                 Log.d(TAG, "Location is Null");
             }
 
-            mLocationHandler.postDelayed(this, LOCATION_REFRESH_FREQUENCY.get());
+            if (mLocationHandler != null) {
+                mLocationHandler.postDelayed(this, LOCATION_REFRESH_FREQUENCY.get());
+            }
         }
     };
 
@@ -408,11 +410,9 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
      * Request Location Permissions
      */
     private void requestLocationPermissions() {
-        if (!isAdminActive()) {
-            Intent intent = new Intent(mContext, PermissionActivity.class);
-            intent.putExtra(LOCATION, true);
-            mContext.startActivity(intent);
-        }
+        Intent intent = new Intent(mContext, PermissionActivity.class);
+        intent.putExtra(LOCATION, true);
+        mContext.startActivity(intent);
     }
 
     /**
