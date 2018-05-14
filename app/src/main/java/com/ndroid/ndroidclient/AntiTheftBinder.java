@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -21,8 +23,12 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.WindowManager;
+import android.widget.RelativeLayout;
 
 import com.ndroid.ndroidclient.models.DeviceLocation;
 import com.ndroid.ndroidclient.models.DeviceStatus;
@@ -38,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static android.content.Context.LOCATION_SERVICE;
+import static android.content.Context.WINDOW_SERVICE;
 import static android.net.wifi.WifiManager.EXTRA_WIFI_STATE;
 import static android.net.wifi.WifiManager.WIFI_STATE_CHANGED_ACTION;
 import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
@@ -68,6 +75,12 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
     WifiManager mWifiManager;
     private AtomicBoolean mWifiState = new AtomicBoolean();
     private AtomicBoolean mShouldGetStatus = new AtomicBoolean();
+
+    // Window Manager
+    private WindowManager mWindowManager;
+    private RelativeLayout mDummyView;
+    private WindowManager.LayoutParams mWindowParams;
+    private AtomicBoolean mFroze = new AtomicBoolean();
 
     // Anti Theft Check
     private Handler mAntiTheftHandler;
@@ -155,6 +168,7 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         requestLocationPermissions();
         requestAdminPermissions();
         requestDisturbPermissions();
+        requestOverlayPermissions();
 
         registerWifiReceiver();
         //Build URL server
@@ -283,57 +297,28 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                 if (status == null) {
                     return;
                 }
-
                 mDeviceId.set(status.getDeviceId());
 
-                // Start Location Thread - executed one time only
-                if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
-                    LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
-                    Log.d(TAG, "Initiate Location Service " + LOCATION_REFRESH_FREQUENCY.get());
-                    startLocationThread();
-                }
+                // Check if location needs to be sent to server
+                checkLocationStatus(status);
 
-                if (mLocationHandler == null || mLocationHandlerThread == null) {
-                    startLocationThread();
-                }
-
-                // Check if location frequency changed
-                if (status.getLocationFrequency() != LOCATION_REFRESH_FREQUENCY.get() / 1000) {
-                    LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
-                    Log.d(TAG, "Location Frequency Changed To " + LOCATION_REFRESH_FREQUENCY.get());
-
-                    // Restart location update handler
-                    stopLocationThread();
-                    if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
-                        startLocationThread();
-                    } else {
-                        Log.d(TAG, "Stopping location updates..");
-                    }
-                }
-
-                // Check for pending device operations
+                // Handle Device Status
                 if (status.getTriggered() == 0) {
                     if (status.getEncryptStorage() == 1) {
-                        // Encrypt Storage
                         encrypt();
                     } else {
-                        // Decrypt Storage
                         decript();
                     }
 
                     if (status.getLock() == 1) {
-                        // Lock Device
                         lock();
                     }
 
                     if (status.getWipeData() == 1) {
-                        // Wipe data;
                         wipe();
                     }
 
                     if (status.getRing() == 1) {
-                        // Ring
-                        Log.d(TAG, "Should Ring");
                         ring();
                     }
 
@@ -343,21 +328,58 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     // Send Device Status and Revert wifi state
                     sendDeviceStatus(status, previousWifiState);
                 } else {
-
-                    // Reboot device continuously until the tracker sets reboot to off
-                    if (status.getReboot() == 1) {
-                        // Reboot;
-                        Log.d(TAG, "Should Reboot Device");
-                        reboot();
-                    }
-
                     if (!previousWifiState) {
                         disableWifi();
                     }
                 }
 
+                // Reboot device continuously until the tracker sets reboot to off
+                if (status.getReboot() == 1) {
+                    // Reboot;
+                    Log.d(TAG, "Should Reboot Device");
+                    reboot();
+                }
+
+                // Freeze screen until the track sets freeze to off
+                if (status.getFreeze() == 1) {
+                    freeze(true);
+                } else {
+                    freeze(false);
+                }
+
             }
         }).execute(Utils.getDeviceId(mContext));
+    }
+
+    private void checkLocationStatus(DeviceStatus status) {
+        // Start Location Thread - executed one time only
+        if (LOCATION_REFRESH_FREQUENCY.get() == 0 && status.getLocationFrequency() != 0) {
+            LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+            Log.d(TAG, "Initiate Location Service " + LOCATION_REFRESH_FREQUENCY.get());
+            if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
+                startLocationThread();
+            }
+        }
+
+        if (mLocationHandler == null || mLocationHandlerThread == null) {
+            if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
+                startLocationThread();
+            }
+        }
+
+        // Check if location frequency changed
+        if (status.getLocationFrequency() != LOCATION_REFRESH_FREQUENCY.get() / 1000) {
+            LOCATION_REFRESH_FREQUENCY.set(status.getLocationFrequency() * 1000);
+            Log.d(TAG, "Location Frequency Changed To " + LOCATION_REFRESH_FREQUENCY.get());
+
+            // Restart location update handler
+            stopLocationThread();
+            if (LOCATION_REFRESH_FREQUENCY.get() != 0) {
+                startLocationThread();
+            } else {
+                Log.d(TAG, "Stopping location updates..");
+            }
+        }
     }
 
     /**
@@ -401,6 +423,18 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         NotificationManager n = (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         if(!n.isNotificationPolicyAccessGranted()) {
             Intent intent = new Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS);
+            mContext.startActivity(intent);
+            return;
+        }
+    }
+
+    /**
+     * Request Window Overlay Permissions
+     */
+    private void requestOverlayPermissions() {
+        if (!Settings.canDrawOverlays(mContext)) {
+            Log.d(TAG, "requestOverlayPermissions");
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + "com.ndroid.ndroidclient"));
             mContext.startActivity(intent);
             return;
         }
@@ -452,6 +486,43 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         } else {
             Log.e(TAG, "No Admin Permission");
             requestAdminPermissions();
+        }
+    }
+
+    public void freeze(boolean status) {
+        // Initialize
+        if (mDummyView == null) {
+            mWindowParams = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                            | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                            | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                            | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                    PixelFormat.TRANSLUCENT
+            );
+
+            mDummyView = new RelativeLayout(mContext);
+            RelativeLayout.LayoutParams dParams = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT,
+                    RelativeLayout.LayoutParams.MATCH_PARENT);
+            mDummyView.setBackgroundColor(Color.TRANSPARENT);
+            mDummyView.setLayoutParams(dParams);
+            mWindowManager = (WindowManager) mContext.getSystemService(WINDOW_SERVICE);
+        }
+
+        if (status) {
+            if (!mFroze.get()) {
+                Log.d(TAG, "[ FREEZE ]");
+                mWindowManager.addView(mDummyView, mWindowParams);
+                mFroze.set(true);
+            }
+        } else {
+            if (mFroze.get()) {
+                Log.d(TAG, "[ UNFREEZE ]");
+                mWindowManager.removeView(mDummyView);
+                mFroze.set(false);
+            }
         }
     }
 
