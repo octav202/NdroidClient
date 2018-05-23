@@ -13,6 +13,7 @@ public class Constants {
     public static final String SEND_LOCATION = "sendLocation";
     public static final String GET_DEVICE_STATUS = "getDeviceStatus";
     public static final String SEND_DEVICE_STATUS = "sendDeviceStatus";
+    public static final String GET_DEVICE_ALERT = "getDeviceAlert";
 
     // Settings Keys
     public static final String SHARED_KEY_DEVICE_ID = "DEVICE_ID";

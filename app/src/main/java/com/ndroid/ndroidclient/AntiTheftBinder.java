@@ -27,12 +27,17 @@ import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
+import com.ndroid.ndroidclient.models.DeviceAlert;
 import com.ndroid.ndroidclient.models.DeviceLocation;
 import com.ndroid.ndroidclient.models.DeviceStatus;
 import com.ndroid.ndroidclient.server.AddDeviceTask;
+import com.ndroid.ndroidclient.server.GetDeviceAlertTask;
 import com.ndroid.ndroidclient.server.GetDeviceStatusTask;
 import com.ndroid.ndroidclient.server.SendDeviceStatusTask;
 import com.ndroid.ndroidclient.server.SendLocationTask;
@@ -78,9 +83,17 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
 
     // Window Manager
     private WindowManager mWindowManager;
+
+    // Freeze
     private RelativeLayout mDummyView;
     private WindowManager.LayoutParams mWindowParams;
     private AtomicBoolean mFroze = new AtomicBoolean();
+
+    // Alert
+    private RelativeLayout mAlertView;
+    private WindowManager.LayoutParams mAlertParams;
+    private AtomicBoolean mAlert = new AtomicBoolean();
+    private DeviceAlert mDeviceAlert;
 
     // Anti Theft Check
     private Handler mAntiTheftHandler;
@@ -163,6 +176,7 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
         mDeviceManager = (DevicePolicyManager)mContext.getSystemService(Context.DEVICE_POLICY_SERVICE);
         mLocationManager = (LocationManager)mContext.getSystemService(LOCATION_SERVICE);
         mWifiManager = (WifiManager) mContext.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        mWindowManager = (WindowManager) mContext.getSystemService(WINDOW_SERVICE);
 
         // Request all necessary permissions
         requestLocationPermissions();
@@ -347,6 +361,12 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     freeze(false);
                 }
 
+                if (status.getAlert() == 1){
+                    alert(true);
+                } else {
+                    alert(false);
+                }
+
             }
         }).execute(Utils.getDeviceId(mContext));
     }
@@ -525,6 +545,63 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
             }
         }
     }
+
+    public void alert(final boolean status) {
+
+        if (status) {
+            if (!mAlert.get()) {
+                Log.d(TAG, "[ ALERT ON]");
+                // Get Device Alert Info
+                new GetDeviceAlertTask(new GetDeviceAlertTask.GetDeviceAlertCallback() {
+                    @Override
+                    public void onStarted() {
+                    }
+
+                    @Override
+                    public void onFinished(DeviceAlert alert) {
+                        // Initialize
+                        mAlertParams = new WindowManager.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                                        | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                                        | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                                        | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                                PixelFormat.TRANSLUCENT
+                        );
+
+                        LayoutInflater inflater = (LayoutInflater)mContext.getSystemService
+                                (Context.LAYOUT_INFLATER_SERVICE);
+                        mAlertView = (RelativeLayout) inflater.inflate(R.layout.alert_dialog,null);
+
+                        if (alert != null && mAlertView != null) {
+                            TextView phone = mAlertView.findViewById(R.id.phoneText);
+                            TextView email = mAlertView.findViewById(R.id.emailText);
+                            TextView description = mAlertView.findViewById(R.id.descriptionText);
+
+                            phone.setText("Phone Number - " + alert.getPhone());
+                            email.setText("Email  - " + alert.getEmail());
+                            description.setText(alert.getDescription());
+                        }
+                        mWindowManager.addView(mAlertView, mAlertParams);
+                        mAlert.set(true);
+
+                    }
+                }).execute(Utils.getDeviceId(mContext));
+
+            }
+        } else {
+            if (mAlert.get()) {
+                Log.d(TAG, "[ ALERT OFF]");
+                mWindowManager.removeView(mAlertView);
+                mAlert.set(false);
+            }
+        }
+
+    }
+
+
 
     public void reboot() {
         Log.d(TAG, "[ REBOOT ]");

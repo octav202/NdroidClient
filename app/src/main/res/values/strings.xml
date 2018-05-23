@@ -33,4 +33,10 @@
     <string name="at_key_device_pass">device_pass</string>
     <string name="at_key_device_pass_title">Device Password</string>
 
+    <!-- Dialog Alert -->
+    <string name="alert_title">Warning!</string>
+    <string name="alert_subtitle">This device is tracked!</string>
+    <string name="alert_info">If you have this device in your possession, please use the information below
+    to return it to its rightful owner.</string>
+
 </resources>
