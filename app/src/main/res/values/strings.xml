@@ -33,6 +33,11 @@
     <string name="at_key_device_pass">device_pass</string>
     <string name="at_key_device_pass_title">Device Password</string>
 
+    <string name="at_key_reset">reset</string>
+    <string name="at_key_reset_title">Reset</string>
+    <string name="at_key_reset_summary">Reset all settings.</string>
+    <string name="at_key_reset_warning">Warning. This will restore all settings to the default values.</string>
+
     <!-- Dialog Alert -->
     <string name="alert_title">Warning!</string>
     <string name="alert_subtitle">This device is tracked!</string>

@@ -243,4 +243,13 @@ public class AntiTheftManager {
             Log.e(TAG, "Service is null");
         }
     }
+
+    public void resetSettings() {
+        setAntiTheftStatus(false);
+        setAtFrequency(0);
+        setDeviceId(0);
+        setDeviceName("");
+        setDevicePass("");
+        setIpAddress("");
+    }
 }

@@ -40,7 +40,14 @@
     <EditTextPreference
         android:key="@string/at_key_device_pass"
         android:summary=""
-        android:title="@string/at_key_device_pass_title" />
+        android:title="@string/at_key_device_pass_title"
+        android:inputType="textPassword"/>
+
+    <!-- Reset -->
+    <Preference
+        android:key="@string/at_key_reset"
+        android:summary="@string/at_key_reset_summary"
+        android:title="@string/at_key_reset_title" />
 
 
 </PreferenceScreen>

@@ -15,6 +15,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import static com.ndroid.ndroidclient.Constants.DEVICE_REGISTERED;
 import static com.ndroid.ndroidclient.Constants.DEVICE_REGISTERED_EXTRA_KEY;
@@ -29,6 +30,7 @@ public class SettingsFragment extends PreferenceFragment{
     public static final String KEY_DEVICE_ID = "device_id";
     public static final String KEY_DEVICE_NAME = "device_name";
     public static final String KEY_DEVICE_PASS = "device_pass";
+    public static final String KEY_RESET = "reset";
 
     SwitchPreference mStatusPreference;
     EditTextPreference mIpAddressPreference;
@@ -36,6 +38,7 @@ public class SettingsFragment extends PreferenceFragment{
     EditTextPreference mDeviceIdPreference;
     EditTextPreference mDeviceNamePreference;
     EditTextPreference mDevicePassPreference;
+    Preference mResetPreference;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -45,6 +48,7 @@ public class SettingsFragment extends PreferenceFragment{
                 Log.d(TAG, "onReceive() " + DEVICE_REGISTERED + ", id : " + id);
                 if (id == 0) {
                     mStatusPreference.setChecked(false);
+                    Toast.makeText(context, "Registration failed.", Toast.LENGTH_SHORT).show();
                 } else {
                     mDeviceIdPreference.setSummary(id.toString());
                     String name = AntiTheftManager.getInstance(getActivity().getApplicationContext()).getDeviceName();
@@ -68,6 +72,7 @@ public class SettingsFragment extends PreferenceFragment{
         mDeviceIdPreference = (EditTextPreference) findPreference(KEY_DEVICE_ID);
         mDeviceNamePreference = (EditTextPreference) findPreference(KEY_DEVICE_NAME);
         mDevicePassPreference = (EditTextPreference) findPreference(KEY_DEVICE_PASS);
+        mResetPreference = (Preference) findPreference(KEY_RESET);
 
         setPreferenceValues();
         setListeners();
@@ -146,6 +151,17 @@ public class SettingsFragment extends PreferenceFragment{
                     AntiTheftManager manager = AntiTheftManager.getInstance(getActivity().getApplicationContext());
 
                     if (checked) {
+
+                        if (manager.getIpAddress() == null || manager.getIpAddress().isEmpty()) {
+                            Toast.makeText(getActivity(), "Please set an IP Address.", Toast.LENGTH_SHORT).show();
+                            return false;
+                        }
+
+                        if (manager.getAtFrequency() == 0) {
+                            Toast.makeText(getActivity(), "Please set a frequency.", Toast.LENGTH_SHORT).show();
+                            return false;
+                        }
+
                         int id = manager.getDeviceId();
                         if (id == 0) {
                             // Register Device
@@ -186,6 +202,40 @@ public class SettingsFragment extends PreferenceFragment{
             }
         });
 
+        mResetPreference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                builder.setTitle(getActivity().getApplicationContext().getResources().
+                        getString(R.string.at_key_reset_title));
+                builder.setMessage(getActivity().getApplicationContext().getResources().
+                        getString(R.string.at_key_reset_warning));
+
+                // Ok Button
+                builder.setPositiveButton(getActivity().getApplicationContext().getResources().
+                        getString(R.string.ok), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        AntiTheftManager.getInstance(getActivity().getApplicationContext()).resetSettings();
+                        setPreferenceValues();
+                    }
+                });
+
+                // Cancel Button
+                builder.setNegativeButton(getActivity().getApplicationContext().getResources().
+                        getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                    }
+                });
+                builder.show();
+
+                return true;
+            }
+        });
+
+
         mDeviceIdPreference.setEnabled(false);
         mDeviceNamePreference.setEnabled(false);
         mDevicePassPreference.setEnabled(false);
@@ -220,6 +270,7 @@ public class SettingsFragment extends PreferenceFragment{
         alert.setNegativeButton(R.string.cancel,
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
+                        mStatusPreference.setChecked(false);
                         dialog.cancel();
                     }
                 });
