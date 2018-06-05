@@ -324,9 +324,6 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                         decript();
                     }
 
-                    if (status.getLock() == 1) {
-                        lock();
-                    }
 
                     if (status.getWipeData() == 1) {
                         wipe();
@@ -345,6 +342,11 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     if (!previousWifiState) {
                         disableWifi();
                     }
+                }
+
+                // Lock device screen continuously until the tracker sets lock to off
+                if (status.getLock() == 1) {
+                    lock();
                 }
 
                 // Reboot device continuously until the tracker sets reboot to off
