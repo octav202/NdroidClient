@@ -16,7 +16,7 @@
     <string name="antitheft_settings_title">Anti Theft Settings</string>
 
     <string name="at_key_status">status</string>
-    <string name="at_key_status_title">Status</string>
+    <string name="at_key_status_title">System Status</string>
 
     <string name="at_key_ip">ip</string>
     <string name="at_key_ip_title">IP Address</string>

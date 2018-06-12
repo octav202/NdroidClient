@@ -151,7 +151,6 @@ public class SettingsFragment extends PreferenceFragment{
                     AntiTheftManager manager = AntiTheftManager.getInstance(getActivity().getApplicationContext());
 
                     if (checked) {
-
                         if (manager.getIpAddress() == null || manager.getIpAddress().isEmpty()) {
                             Toast.makeText(getActivity(), "Please set an IP Address.", Toast.LENGTH_SHORT).show();
                             return false;
@@ -170,7 +169,7 @@ public class SettingsFragment extends PreferenceFragment{
                             manager.setAntiTheftStatus(true);
                         }
                     } else {
-                        manager.setAntiTheftStatus(false);
+                        showDisableDialog();
                     }
                 }
                 return true;
@@ -212,13 +211,27 @@ public class SettingsFragment extends PreferenceFragment{
                 builder.setMessage(getActivity().getApplicationContext().getResources().
                         getString(R.string.at_key_reset_warning));
 
+                LinearLayout layout= new LinearLayout(getActivity());
+                layout.setOrientation(LinearLayout.VERTICAL);
+
+                final EditText passInput = new EditText(getActivity());
+                passInput.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                passInput.setHint(R.string.pass);
+                layout.addView(passInput);
+                builder.setView(layout);
+
                 // Ok Button
                 builder.setPositiveButton(getActivity().getApplicationContext().getResources().
                         getString(R.string.ok), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        AntiTheftManager.getInstance(getActivity().getApplicationContext()).resetSettings();
-                        setPreferenceValues();
+                        AntiTheftManager manager = AntiTheftManager.getInstance(getActivity().getApplicationContext());
+                        if (passInput.getText().toString().equals(manager.getDevicePass())) {
+                            manager.resetSettings();
+                            setPreferenceValues();
+                        } else {
+                            Toast.makeText(getActivity(), "Invalid Password.", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
 
@@ -272,6 +285,45 @@ public class SettingsFragment extends PreferenceFragment{
                     public void onClick(DialogInterface dialog, int whichButton) {
                         mStatusPreference.setChecked(false);
                         dialog.cancel();
+                    }
+                });
+        alert.create().show();
+    }
+
+    /**
+     * Authenticate when disabling AntiTheft.
+     */
+    private void showDisableDialog() {
+        final AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
+        LinearLayout layout= new LinearLayout(getActivity());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        final EditText passInput = new EditText(getActivity());
+        passInput.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        passInput.setHint(R.string.pass);
+        layout.addView(passInput);
+        alert.setView(layout);
+
+        alert.setTitle(R.string.register);
+
+        alert.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+                AntiTheftManager manager = AntiTheftManager.getInstance(getActivity());
+
+                String pass = passInput.getText().toString().trim();
+                if (pass.equals(manager.getDevicePass())) {
+                    manager.setAntiTheftStatus(false);
+                } else {
+                    mStatusPreference.setChecked(true);
+                    Toast.makeText(getActivity(), "Invalid Password", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        alert.setNegativeButton(R.string.cancel,
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        dialog.cancel();
+                        mStatusPreference.setChecked(true);
                     }
                 });
         alert.create().show();
