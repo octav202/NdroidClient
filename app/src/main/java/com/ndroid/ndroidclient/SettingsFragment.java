@@ -48,6 +48,7 @@ public class SettingsFragment extends PreferenceFragment{
                 Log.d(TAG, "onReceive() " + DEVICE_REGISTERED + ", id : " + id);
                 if (id == 0) {
                     mStatusPreference.setChecked(false);
+                    mStatusPreference.setSummary(R.string.disabled);
                     Toast.makeText(context, "Registration failed.", Toast.LENGTH_SHORT).show();
                 } else {
                     mDeviceIdPreference.setSummary(id.toString());
@@ -73,10 +74,10 @@ public class SettingsFragment extends PreferenceFragment{
         mDeviceNamePreference = (EditTextPreference) findPreference(KEY_DEVICE_NAME);
         mDevicePassPreference = (EditTextPreference) findPreference(KEY_DEVICE_PASS);
         mResetPreference = (Preference) findPreference(KEY_RESET);
-
         setPreferenceValues();
         setListeners();
         registerReceiver();
+
     }
 
     @Override
@@ -124,6 +125,11 @@ public class SettingsFragment extends PreferenceFragment{
     private void setPreferenceValues() {
         boolean status = AntiTheftManager.getInstance(getActivity().getApplicationContext()).getAntiTheftStatus();
         mStatusPreference.setChecked(status);
+        if (status) {
+            mStatusPreference.setSummary(R.string.enabled);
+        } else {
+            mStatusPreference.setSummary(R.string.disabled);
+        }
 
         String ip = AntiTheftManager.getInstance(getActivity().getApplicationContext()).getIpAddress();
         mIpAddressPreference.setSummary(ip);
@@ -167,6 +173,7 @@ public class SettingsFragment extends PreferenceFragment{
                             showRegisterDialog();
                         } else {
                             manager.setAntiTheftStatus(true);
+                            mStatusPreference.setSummary(R.string.enabled);
                         }
                     } else {
                         showDisableDialog();
@@ -284,6 +291,7 @@ public class SettingsFragment extends PreferenceFragment{
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         mStatusPreference.setChecked(false);
+                        mStatusPreference.setSummary(R.string.disabled);
                         dialog.cancel();
                     }
                 });
@@ -313,8 +321,11 @@ public class SettingsFragment extends PreferenceFragment{
                 String pass = passInput.getText().toString().trim();
                 if (pass.equals(manager.getDevicePass())) {
                     manager.setAntiTheftStatus(false);
+                    mStatusPreference.setChecked(false);
+                    mStatusPreference.setSummary(R.string.disabled);
                 } else {
                     mStatusPreference.setChecked(true);
+                    mStatusPreference.setSummary(R.string.enabled);
                     Toast.makeText(getActivity(), "Invalid Password", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -324,6 +335,7 @@ public class SettingsFragment extends PreferenceFragment{
                     public void onClick(DialogInterface dialog, int whichButton) {
                         dialog.cancel();
                         mStatusPreference.setChecked(true);
+                        mStatusPreference.setSummary(R.string.enabled);
                     }
                 });
         alert.create().show();

@@ -6,8 +6,9 @@
     <color name="colorAccent">#FF5722</color>
     <color name="colorAccentTransparent">#66FF5722</color>
     <color name="transparent">#CC123456</color>
-    <color name="text">#FFFFFF</color>
-    <color name= "textPrimary">#212121</color>
+    <color name="white">#FFFFFF</color>
+    <color name= "windowBackground">#2b2b2b</color>
+    <color name= "actionBarBackground">#000000</color>
     <color name="textSecondary">#727272</color>
     <color name="divider">#B6B6B6</color>
     <color name="background">#F2F2F2</color>

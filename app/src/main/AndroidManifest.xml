@@ -23,7 +23,7 @@
         <activity android:name=".PermissionActivity">
         </activity>
 
-        <activity android:name=".SettingsActivity" android:theme="@style/SettingsTheme">
+        <activity android:name=".SettingsActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">NdroidClient</string>
+    <string name="app_name">AntiTheft </string>
     <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
     <string name="device_name">Device Name :</string>
     <string name="pass">Password : </string>
     <string name="device_id">Device Id : </string>

@@ -1,17 +1,43 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="AppTheme" parent="@android:style/Theme.Material.Light">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+
+        <item name="android:windowBackground">@color/windowBackground</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+
+        <item name="android:actionBarStyle">@style/MyActionBar</item>
+        <item name="android:divider">@color/divider</item>
+
+        <item name="android:textColor">@color/divider</item>
+        <item name="android:textColorSecondary">@color/colorAccent</item>
+
+        <item name="android:thumbTint">@color/colorAccent</item>
+
+        <!-- <item name="android:windowContentOverlay">@drawable/divider</item> -->
     </style>
 
-    <!-- Settings activity theme. -->
-    <style name="SettingsTheme" parent="@android:style/Theme.Material.Light">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+    <!-- Action Bar Style-->
+    <style name="MyActionBar" parent="@android:style/Widget.Holo.Light.ActionBar">
+        <item name="android:logo">@android:color/transparent</item>
+        <item name="android:background">@color/actionBarBackground</item>
+        <item name="android:titleTextStyle">@style/Theme.MyAppTheme.ActionBar.TitleTextStyle</item>
+        <item name="android:divider">@color/divider</item>
     </style>
+
+    <!-- Action Bar Text Color-->
+    <style name="Theme.MyAppTheme.ActionBar.TitleTextStyle" parent="android:style/TextAppearance.Holo.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Alert Dialog Theme-->
+    <style name="AlertDialogCustom" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:colorAccent">#0000FF</item>
+    </style>
+
 </resources>

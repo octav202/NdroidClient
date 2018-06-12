@@ -36,11 +36,11 @@ public class SettingsActivity extends PreferenceActivity {
         super.onCreate(savedInstanceState);
 
         // Set Action Bar color
-        int primary = getResources().getColor(R.color.colorPrimaryDark);
-        String htmlColor = String.format(Locale.US, "#%06X", (0xFFFFFF & Color.argb(0,
-                Color.red(primary), Color.green(primary), Color.blue(primary))));
-        getActionBar().setTitle(Html.fromHtml("<font color=\""+htmlColor+"\">"
-                + getString(R.string.antitheft_settings_title) + "</font>"));
+//        int primary = getResources().getColor(R.color.colorPrimaryDark);
+//        String htmlColor = String.format(Locale.US, "#%06X", (0xFFFFFF & Color.argb(0,
+//                Color.red(primary), Color.green(primary), Color.blue(primary))));
+//        getActionBar().setTitle(Html.fromHtml("<font color=\""+htmlColor+"\">"
+//                + getString(R.string.antitheft_settings_title) + "</font>"));
     }
 
     @Override
