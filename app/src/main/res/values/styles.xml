@@ -14,9 +14,11 @@
         <item name="android:divider">@color/divider</item>
 
         <item name="android:textColor">@color/divider</item>
-        <item name="android:textColorSecondary">@color/colorAccent</item>
+        <item name="android:textColorSecondary">@color/colorPrimary</item>
 
         <item name="android:thumbTint">@color/colorAccent</item>
+
+        <item name="android:alertDialogTheme">@style/AlertDialogCustom</item>
 
         <!-- <item name="android:windowContentOverlay">@drawable/divider</item> -->
     </style>
@@ -31,13 +33,15 @@
 
     <!-- Action Bar Text Color-->
     <style name="Theme.MyAppTheme.ActionBar.TitleTextStyle" parent="android:style/TextAppearance.Holo.Widget.ActionBar.Title">
-        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textColor">@color/divider</item>
         <item name="android:textStyle">bold</item>
     </style>
 
     <!-- Alert Dialog Theme-->
     <style name="AlertDialogCustom" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="android:colorAccent">#0000FF</item>
+        <item name="android:background">@color/divider</item>
+        <item name="android:textColor">@color/colorAccent</item>
+        <item name="android:textColorSecondary">@color/colorPrimary</item>
     </style>
 
 </resources>
