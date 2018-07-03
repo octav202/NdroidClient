@@ -24,6 +24,7 @@ public class Constants {
     public static final String SHARED_KEY_IP_ADDRESS = "IP_ADDRESS";
 
     public static final Integer RING_TIMEOUT = 10;
+    public static final Integer WIFI_ENABLE_DELAY = 4000;
 
     // Flags for requesting permissions
     public static final String DEVICE_ADMIN = "DEVICE_ADMIN";

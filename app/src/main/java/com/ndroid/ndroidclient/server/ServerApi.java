@@ -328,7 +328,7 @@ public class ServerApi {
      */
     public static DeviceStatus getDeviceStatus(int deviceId) {
         URL url = getDeviceStatusUrl(deviceId);
-        Log.d(TAG, "____ [GET DEVICE STATUS] ____" + url);
+        Log.d(TAG, "[GET DEVICE STATUS] " + url);
 
         InputStream stream = null;
         HttpURLConnection connection = null;

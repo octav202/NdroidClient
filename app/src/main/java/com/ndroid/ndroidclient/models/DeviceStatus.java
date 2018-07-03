@@ -122,18 +122,16 @@ public class DeviceStatus {
 
     @Override
     public String toString() {
-        return "DeviceStatus{" +
-                "deviceId=" + deviceId +
-                ", lock=" + lock +
-                ", wipeData=" + wipeData +
-                ", encryptStorage=" + encryptStorage +
-                ", reboot=" + reboot +
-                ", locationFrequency=" + locationFrequency +
-                ", ring=" + ring +
-                ", freeze=" + freeze +
-                ", alert=" + alert +
-                ", triggered=" + triggered +
-                '}';
+        return "[ deviceId - " + deviceId + " ]\n" +
+                "[ lock - " + lock + " ]\n" +
+                "[ wipeData - " + wipeData + " ]\n" +
+                "[ encryptStorage - " + encryptStorage + " ]\n" +
+                "[ reboot - " + reboot + " ]\n" +
+                "[ locationFrequency - " + locationFrequency + "\n" +
+                "[ ring - " + ring + " ]\n" +
+                "[ freeze - " + freeze + " ]\n" +
+                "[ alert - " + alert + " ]\n" +
+                "[ triggered - " + triggered + " ]";
     }
 }
 

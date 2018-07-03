@@ -23,7 +23,7 @@
     <string name="at_key_ip_title">IP Address</string>
 
     <string name="at_key_frequency">frequency</string>
-    <string name="at_key_frequency_title">Anti Theft Check Frequency (sec.)</string>
+    <string name="at_key_frequency_title">Frequency</string>
 
     <string name="at_key_device_id">device_id</string>
     <string name="at_key_device_id_title">Device ID</string>

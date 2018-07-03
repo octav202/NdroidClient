@@ -63,6 +63,7 @@ import static com.ndroid.ndroidclient.Constants.RING_TIMEOUT;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_PREFIX;
 import static com.ndroid.ndroidclient.Constants.SERVER_URL_SUFFIX;
+import static com.ndroid.ndroidclient.Constants.WIFI_ENABLE_DELAY;
 
 public class AntiTheftBinder extends IAntiTheftService.Stub {
     public static final String TAG = "AT_AntiTheftBinder";
@@ -105,8 +106,8 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
             mWifiState.set(mWifiManager.isWifiEnabled());
             if (!mWifiState.get()) {
                 // Turn Wifi on and get status
+                Log.d(TAG, "WIFI OFF - TURNING ON..");
                 mWifiManager.setWifiEnabled(true);
-                Log.d(TAG, "Wifi Disabled, Enable & Postpone getDeviceStatus()");
                 mShouldGetStatus.set(true);
             } else {
                 // Wifi already On, Get status
@@ -338,10 +339,6 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
 
                     // Send Device Status and Revert wifi state
                     sendDeviceStatus(status, previousWifiState);
-                } else {
-                    if (!previousWifiState) {
-                        disableWifi();
-                    }
                 }
 
                 // Lock device screen continuously until the tracker sets lock to off
@@ -367,6 +364,10 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                     alert(true);
                 } else {
                     alert(false);
+                }
+
+                if (!previousWifiState) {
+                    disableWifi();
                 }
 
             }
@@ -420,7 +421,12 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
                 if (status == WIFI_STATE_ENABLED) {
                     Log.d(TAG, "on Receive WIFI_STATE_ENABLED");
                     if (mShouldGetStatus.compareAndSet(true,false)) {
-                        getDeviceStatus(mWifiState.get());
+                        mAntiTheftHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                getDeviceStatus(mWifiState.get());
+                            }
+                        },WIFI_ENABLE_DELAY);
                     }
                 } else if (status == WIFI_STATE_DISABLED) {
                     Log.d(TAG, "on Receive WIFI_STATE_DISABLED");
