@@ -1,5 +1,6 @@
 package com.ndroid.ndroidclient;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -28,6 +29,9 @@ public class AntiTheftService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate()");
+
+        startForeground(1,new Notification());
+
         mBinder = new AntiTheftBinder(getApplicationContext());
 
         sendBroadcast(new Intent(SERVICE_READY));

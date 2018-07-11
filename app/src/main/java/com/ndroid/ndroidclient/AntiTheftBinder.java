@@ -609,8 +609,11 @@ public class AntiTheftBinder extends IAntiTheftService.Stub {
 
     }
 
-
-
+    /**
+     * Set Device Owner Before usage
+     * All Google accounts should be removed before this.
+     * adb shell dpm set-device-owner com.ndroid.ndroidclient/.AdminReceiver
+     */
     public void reboot() {
         Log.d(TAG, "[ REBOOT ]");
         ComponentName receiver = new ComponentName(mContext, AdminReceiver.class);
