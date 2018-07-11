@@ -51,6 +51,7 @@ public class SettingsFragment extends PreferenceFragment{
                     mStatusPreference.setSummary(R.string.disabled);
                     Toast.makeText(context, "Registration failed.", Toast.LENGTH_SHORT).show();
                 } else {
+                    mStatusPreference.setSummary(R.string.enabled);
                     mDeviceIdPreference.setSummary(id.toString());
                     String name = AntiTheftManager.getInstance(getActivity().getApplicationContext()).getDeviceName();
                     mDeviceNamePreference.setSummary(name);
